@@ -58,6 +58,7 @@ int * thing()
     return i;
 }
 ```
+>`*i` is allocated on the stack, so its dropped after thing() returns, so what does the pointer point to? This is called a dangling pointer. Rust doesn't allow this.
 
 So, ownership in rust takes these concepts that are already clear to most developers and integrates its memory management to heap types as well -- still using the same rules. When the scope that defined a variable is dropped, so is the variable, and rust ensures _at compile time_ that no one can still possibly be referencing that variable after the owning scope has been dropped.
 
@@ -195,9 +196,11 @@ fn main() {
 fn do_the_thing(foo: &Foo) {
 }
 ```
-> This isn't exactly a _good_ example since we should just borrow foo here. But it serves its purpose.
+> This isn't exactly a _good_ example since we should just borrow foo here. But it serves its purpose. We'll have more practical examples of Rc and similar types in later sections.
 
-The key take away here is that `do_the_thing()` does _not_ take an `Rc`. It takes `&Foo`. But Rc can behave exactly like a &Foo. We'll go over how in the `Traits` section. 
+The two key take aways here are that:
+1) `do_the_thing()` does _not_ take an `Rc`. It takes `&Foo`. But Rc can behave exactly like a &Foo. We'll go over how in the `Traits` section. 
+2) Cloning foo does not copy the whole struct -- that data is in the heap. We are just copying a simple pointer to that data, as well as incrementing a counter.
 
 #### Understanding Ownership Via Go's Garbage Collector
 
@@ -256,7 +259,7 @@ We'll address specifically how all this magic works in the `Drop` trait section.
 
 So, the one thing that everyone eventually struggles to understand about rust (yours truly very much included) is _lifetimes_. They are both very simple, and very different and strange. Once you understand them, you won't struggle (much) with them but at first they are possibly the most incomprehensible sources of frustration in rust. 
 
-To explain lifetimes, we're going to use some functions iteracting with a slice of data as a training ground.
+To explain lifetimes, we're going to use some functions interacting with a slice of data as a training ground.
 
 #### Slices
 
@@ -351,10 +354,11 @@ fn main() {
 	let data = read_file("input.txt");
 	let count = count_lines(&data);
 	let lines = split_lines(&data);
+	println!("{}", count);
 }
 ```
 
-So, let's discuss the lifetime of our vector of data. We read all the data in `read_file`, which passes the value back to `main`. The variable `data` now owns our data. Since data exists until the end of `main`, we can safely borrow its data. Rust can easily ensure that the Vec exists at least as long as the references passed to `count` and `lines`. 
+So, let's discuss the lifetime of our vector of data. We read all the data in `read_file`, which passes the value back to `main`. The variable `data`  in `main` , and not `read_file()`, now owns our data. Since `data` exists until the end of `main`, we can safely borrow its data. Rust can easily ensure that the Vec exists at least as long as the references passed to `count` and `lines`. 
 
 Note that `lines` contains a vector of references. It does _not_ contain a duplicate of any data, as we never `clone` anything. Essentially what it contains is a list of start and end indexes, and it needs to look at the original Vec to actually get the values. 
 
@@ -379,7 +383,7 @@ In order for Rust to do its job and have zero sacrifice performance and safety, 
 
 Lifetimes are the rust's compiler's way of tracking the scope (or lifetime) of a reference. We've already used them -- in our `split_lines` function above, we return an _owned_ `Vec` of _borrowed_ values. So what's so confusing about that? Well, when there is only 1 borrowed input parameter, and 1 borrowed return type, Rust knows that those two values are paired -- the lifetime of the ouput must be the same as the input.
 
-> Think about that last statement for a while. Why is it true that, if there is one reference input and one reference output, they must have the same origin -- the output must be referencing the input, 100% of the time. 
+> Think about that last statement for a while. Why is it true that, if there is one reference input and one reference output, they must have the same origin -- the output must be referencing the input, 100% of the time?
 
 When the compiler lets you omit the lifetime annotations from a function signature, this is called _lifetime ellision_. 
 
@@ -459,7 +463,7 @@ The design philosophy of rust is to be safe and correct by default. Since its a 
 
 ### Immutable By Default
 
-For one, variables are _immutable_ unless you explicitly declare them are mutable. (In javascript terms, all `let` statements in Rust produce `const`s).
+For one, variables are _immutable_ unless you explicitly declare them as mutable. (In javascript terms, all `let` statements in Rust produce `const`s in javascript).
 
 This means that variables declared with `let` and parameters in functions are immutable, regardless of whether they are references or by-value (move or copy).
 
@@ -473,7 +477,7 @@ This has consequences for the borrow checker, too. In order to be _safe_, you ca
 
 ### No Zeroing of Types
 
-One of Go's "features" is any type, when declared automatically becomes the Zero value for that type if it isn't set to some value. This isn't a thing in Rust. Doing so has dangerous side effects even in Go -- http servers with default, zero configs have timeout values that can leave the door wide open for DOS attacks. The header read timeout defaults to the max value (if its zero, it's considered basically max), and that means, by default, all go servers are trivial to attack -- just write a script that opens a connection and never sends headers. 
+One of Go's "features" is that any type, when declared, automatically becomes the Zero value for that type if it isn't set to some value. This isn't a thing in Rust. Doing so has dangerous side effects even in Go -- [http servers with default](https://github.com/golovers/effective-go#dont-use-default-httpclient--httpserver-in-production), zero configs have timeout values that can leave the door wide open for DOS attacks. The header read timeout defaults to the max value (if its zero, it's considered basically max), and that means, by default, all go servers are trivial to attack -- just write a script that opens a connection and never sends headers. 
 
 This "easy vs correct" is a key differentiator between Go and Rust, and you can find some pretty fun flame wars on the interwebs on the subject, specifically between Go and Rust. 
 
@@ -501,9 +505,9 @@ But because dynamic dispatch uses more _memory_ and is slower at runtime, rust d
 
 Rust is a pretty verbose language. Typing everything out to accomplish everything would be a _lot_ of work (although, lets be honest, it'd probably still be less work than error handling in go, with an if statement on every second line).
 
-Additionally, since rust doesn't have a runtime, rust needs some way to meta program. This is what [macros](https://doc.rust-lang.org/book/ch19-06-macros.html) are for. Macros are functions that end with a bang (`!`). Macros run _at compile time_ to expand code in some procedural way. 
+Additionally, since rust doesn't have a runtime, rust needs some way to metaprogram. This is what [macros](https://doc.rust-lang.org/book/ch19-06-macros.html) are for. The function you've seen so far that end with a bang (`!`) (e.g. `println!()`) are macros. Macros run _at compile time_ to expand code in some procedural way. 
 
-You'll see many examples of macros throughout this module, and the rest of the training, but we won't be implementing our own for some time. For now, all you need to know is that macros are _zero cost_ since they happen at compile time (although they do make compilation faster), that any failures happen at compile time (and thus are far more friendly to build than complicated runtime reflection in Go), and that there are two types:
+You'll see many examples of macros throughout this module, and the rest of the training, but we won't be implementing our own for some time. For now, all you need to know is that macros are _zero cost_ since they happen at compile time (although they do make compilation slower), that any failures happen at compile time (and thus are far more friendly to build than complicated runtime reflection in Go), and that there are two types:
 
 1) [Declarative macros](https://doc.rust-lang.org/book/ch19-06-macros.html#declarative-macros-with-macro_rules-for-general-metaprogramming). These are functions ending in !. The most common ones are things like `println!()` which expand to more complicated code to handle formatting and parsing of output. The syntax for writing them looks very similar to a regular expression, and its basically just matching patterns and building generated strings of code. 
 2) [Procedural Macros](https://doc.rust-lang.org/book/ch19-06-macros.html#procedural-macros-for-generating-code-from-attributes) exist primarily for the `Derive` macro, which enables you to implement a Trait for a type based only on the composition of the struct, and some other annotations the developer can provide. Writing a procedural macro is essentially writing rust code that executes at compile time. You can do really anything rust can do -- including fetch web pages, execute local system calls, etc. This is _Extremely_ powerful, but does mean that its possible for code compilation to do bad things to your machine.
@@ -513,7 +517,7 @@ We won't be spending a lot of time on them -- I don't think its worthwhile. Its 
 ## Types, Types, and more Types
 Most people who end up developing for a significant period of time gain an appreciation for types. Compared to dynamic languages, they help ensure that code is more likely to be doing what you want, and eliminate whole categories of tests. 
 
-Rust takes types to the next level. It has types for things you've probably never thought of needing types for. Unlike go, which heavily relies on `interface{}` and runtime reflection to get much of anything real done, Rust does everything at compile time. Rust doesn't have any support for runtime reflection -- because rust _has no runtime_. Rust only has the runtime you program into it. There's no garbage collector, no asynchronous executor, nothing running except the code you wrote. 
+Rust takes types to the next level. It has types for things you've probably never thought of needing types for. Unlike go, which heavily relies on `interface{}` and runtime reflection to get much of anything real done, Rust does everything at compile time. Rust doesn't have any support for runtime reflection -- because rust _has no runtime_. Rust only has the runtime you program into it. There's no garbage collector, no asynchronous executor, nothing running except the code you wrote (or imported). 
 
 If you wanted your mind to be blown, Rust's type system -- by itself -- is turing complete. There is quite literally nothing you can't do with it (if you're willing to sacrifice your sanity and compile times).
 
@@ -533,7 +537,7 @@ let input: Vec<&str> = "foo bar".split_whitespace().collect();
 println!("You said {} word{}", input.len(), if input.len() > 1 {"s"} else {""});
 ```
 
-Important observation: the `if` block does not include `return`, but it automatically returns the last statement's value, in this case `"s"`. This is a very common pattern that at first will seem very strange, but over time you'll come to appreciate it. 
+Important observation: the `if` block does not include `return`, but it automatically returns the last statement's value, in this case `"s"`. This is a very common pattern that at first will seem very strange, but over time you'll come to appreciate it. (Note: technically any expression without a `;` returns, however this should be the last line)
 
 In functions, the last line of a function is returned, even if `return` is not specified (use `return` only for returning _early_). Consider the following:
 
@@ -560,11 +564,11 @@ By including enums, Rust single handedly solves two of the biggest sources of bu
 
 #### No Null Pointers Ever Again
 
-One of the biggest, most obvious example of better types to anyone who's ever written Java, or Golang, or Javascript is that rust has no concept of a null reference. It's impossible. Every variable must be initialized to be used. Null pointers are a bad idea, and by this time, everybody knows it (Rust is hardly the first language to remove support, Kotlin and Swift both are immune to null pointers as well, arguably, even Python is immune and it predates Java).
+One of the biggest, most obvious example of better types to anyone who's ever written Java, or Golang, or Javascript is that rust has no concept of a null reference. It's impossible. Every variable must be initialized to be used. Null pointers are a bad idea, and by this time, everybody knows it (Rust is hardly the first language to remove support, Kotlin and Swift both are immune to null pointers as well and even Python is immune and it predates Java).
 
 However, at some point, you will _need_ to support a value being "empty" and not being forced to set it to some value just for the sake of satisfying some crusade against null pointers. For this, Rust uses a standard enum, `Option<T>`.
 
-A hugely important distinction is that this is a different type. You cannot, ever, compare a `T` to an `Option<T>`. In go, there is no capacity in the type system to know if a pointer can be null. This means you have to use sophisticated linting to determine that possibility via tracing of code paths... But a simple type fixes all of that. Of course, to enable this type, you need generics and enums. Here is what Option looks like:
+A hugely important distinction is that this is a different type. You cannot compare a `T` to an `Option<T>`. In go, there is no capacity in the type system to know if a pointer can be null. This means you have to use sophisticated linting to determine that possibility via tracing of code paths... But a simple type fixes all of that. Of course, to enable this type, you need generics and enums. Here is what Option looks like:
 
 ```rust
 enum Option<T> {
@@ -627,9 +631,9 @@ fn main() {
 
 ##### Option Methods and If Let
 
-One of rust's strengths is its expressiveness. This is, as previously mentioned, largely due to each function returning exactly one value. This means that, depending on what you want to accomplish, you can do many things without needing to resort to match. 
+One of rust's strengths is its expressiveness. This is, as previously mentioned, largely due to each function returning exactly one value. This means that you can do many things without needing to resort to match. 
 
-One very useful, but slightly weird pattern is `if let`. If let is useful if you want to take a certain action of the value of an `Option` is Some, but want to do nothing if it is `None`. Consider the below example. Imagine that this is part of a REST API GET method, for instance a set of filters to filter the results of a resource. Obviously, this is not fully functional code and we're hiding a lot, here. We'll get to do a real implementation of this in the next module.
+One very useful, but slightly weird pattern is `if let`. If let is useful if you want to take a certain action if the value of an `Option` is Some, but want to do nothing if it is `None`. Consider the below example. Imagine that this is part of a REST API GET method, for instance a set of filters to filter the results of a resource. Obviously, this is not fully functional code and we're hiding a lot, here. We'll get to do a real implementation of this in the next module.
 
 ```rust
 struct Filters{
@@ -672,13 +676,13 @@ if err != nil {
 }
 ```
 
-Over and over in a function, with different errors, scopes, etc. you increase the chance drastically of checking the wrong variable, not checking an error at all, accidentally returning nil instead of the error, etc. Many linters will catch those, but not always, and the compiler itself will _not_ catch it. 
+Over and over in a function, with different errors, scopes, etc. you increase the chance drastically of checking the wrong variable, [not checking an error at all](https://github.com/OrderMyGear/payment-service/pull/1267/files#diff-6140337e81750801315429325d7581a2b71d1d9c822a788bfebc86497bbe757aR40), accidentally returning nil instead of the error, etc. Many linters will catch those, but not always, and the compiler itself will _not_ catch it. 
 
 Rust, again, solves this problem. The `Result<T, E>` type exists for when a function may return an error. Like `Option<T>` it is generic, but this time it has two generic parameters. One is the type to be returned on success, and the other is the type to be returned on error.
 
 Note that, while the _convention_ is to return an Error as the value in `Err`, there is no actual constraint that requires `E` to implement the `Error` interface (but it almost always should). 
 
-Let's take another look at the code snippet from the last section. It probably doesn't make sense for out "get users" function to just return a Vec of users. What if it fails? It should probably look something like this:
+Let's take another look at the code snippet from the last section. It probably doesn't make sense for our "get users" function to just return a Vec of users. What if it fails? It should probably look something like this:
 
 ```rust
 fn get_users(users: &UserRepo, filters: &Filters) -> Result<Vec<User>, MyError> {
@@ -713,7 +717,7 @@ fn get_users(good: bool) -> Result<Vec<usize>> {
 }
 ```
 
-So, we have shadowed the std Result type for this module, to have only 1 generic parameter. We have defined the second in all cases. If for some reason you wanted to still use the standard, double-generic `Result` type, you could use the fully qualified path of `std::result::Result` (but this would be unusual and you shoud avoid it).
+So, we have shadowed the std Result type for this module, to have only 1 generic parameter.  If for some reason you wanted to still use the standard, double-generic `Result` type, you could use the fully qualified path of `std::result::Result` (but this would be unusual and you shoud avoid it).
 
 We also showed how to implement methods on a type. You use `impl` (implement) to start a block. You can then define any number of methods for that type. Rust uses the special names `self` and `Self` while inside `impl` blocks to provide access to the object being affected -- unlike go, you _can't_ pick the name (thank god). 
 
@@ -822,7 +826,7 @@ Why are there 3 ways to do it? Well, that's because there happen to be 3 traits 
 
 `to_owned()` is the `std::borrow::ToOwned` trait, which is used for types that have specific logic to take when they are converted from a reference to an owned value. You will likely never need to implement this, either, but that is simply because its esoteric.
 
-`into` is part of the `From/Into` trait, which is _Very_ common and you will implement this all the time.
+`into` is part of the `From/Into` trait, which is _very_ common and you will implement this all the time.
 
 So, what are traits? Well, I'm glad you asked.
 
@@ -850,9 +854,9 @@ struct Foo {
 ```
 > Don't worry overly about the `where` part -- we'll go over that in Generics
 
-So, silliness of this trait aside, there is a lot on display, here. As mentioned earlier, in `impl` blocks (and traits), `self` and `Self` are reserved words.
+So, silliness of this trait aside, there is a lot on display here. As mentioned earlier, in `impl` blocks (and trait definitions), `self` and `Self` are reserved words.
 
-`Self` is the placeholder for the type. A constructor (`new()`) should always return the type, so the method `new()` returns a new `Type`. `self` refers to the _instance_. In javascript, this would be `this`. In python its also called `self`. 
+`Self` is the placeholder for the type. A constructor (`new()`) should always return the type, so the method `new()` returns a new `Self`. `self` refers to the _instance_. In javascript, this would be `this`. In python its also called `self`. 
 
 A function in an `impl` block that does _not_ have `self` as the first parameter is _static_. This means that function is called in static context (`Type::method()`) and doesn't have access to the instance variable. It's identical to static methods in Java. Go does not allow static methods because its silly.
 
@@ -925,7 +929,7 @@ All of the below examples will use this vector of `people`:
 let people = vec!["Sergio", "Sergio", "Daniel", "Khalil", "Rene", "Mora", "Justin", "Dino"];
 ```
 <?btxt+rust ignore=false?>
-Hopefully obviously, you can iterate over them in a foor loop:
+Maybe obviously, you can iterate over them in a for loop:
 ```rust iter1
 for person in people.iter() {
 	println!("{}", person);
@@ -1025,7 +1029,7 @@ We'll go over more of how `derive` works in the Macro section.
 #### Error
 <?btxt+rust mode='overwrite' tag='error' pre='' post='' ?>
 
-Errors in rust are very similar to go. In go, the error interface basically just has one function -- one that returns a `string`. They have expanded on this, and now, by convention, most errors should also implement a chaining mechanism that allows errors to keep track of what caused them. In go, this is `Unwrap`. 
+Errors in rust are very similar to go. In go, the error interface basically just has one function -- one that returns a `string`. They have expanded on this and now, by convention, most errors should also implement a chaining mechanism that allows errors to keep track of what caused them. In go, this is `Unwrap`. 
 
 For rust, the only thing you _must_ implement for a type to be a valid implementation of `std::error::Error` is `std::fmt::Display` and `Debug`. So in short, an error must be string-able.
 
@@ -1082,7 +1086,7 @@ Implementing `source` is a great idea whenever you're writing a library -- it ca
 
 ##### Trait Objects and Dispatch
 
-Notice the `dyn` keyword in the above example. This is needed when dynamic types are used. Dynamic types are types that exist only at runtime, and the _real_ (called 'concrete') type isn't known at compile time. Essentially, in this case, its saying "Some type that implements `std::error::Error`". This is functionally the same as setting the type of a parameter in a go function to an interface. In other words, all interface-based dispatch in Go is _dynamic_.
+Notice the `dyn` keyword in the above example. This is needed when dynamic types are used. Dynamic types are types that exist only when the program is running (in effect, they aren't really types at all, since Rust has no runtime), and the _real_ (called 'concrete') type isn't known at compile time. Essentially, in this case, its saying "Some type that implements `std::error::Error`". This is functionally the same as setting the type of a parameter in a go function to an interface. In other words, all interface-based dispatch in Go is _dynamic_.
 
 `dyn` is generally not a great idea, but in this case, it is an ok idea. Consider the potential significance, here. Let's say `MyError` represents the error a method in an REST client api we are writing. If we wanted to account for all the possible underlying causes of an error in our client, what would that include?
 
@@ -1137,7 +1141,9 @@ So, its definitely a lot more typing, but it's also really clear, isn't it? We c
 
 Serde is the only Trait (well, technically its several traits) mentioned here that is actually not part of the Rust standard library. However, serde is so universally leveraged that it might as well be. Serde is short for Serialize Deserialize, and its a library for taking any given rust type and converting into a standard format that can be then serialized into other formats -- JSON, XML, YAML, etc. 
 
-Serde is infinitely better than Go's runtime JSON marshalling. It is, quite frankly, a reason to use rust for web apis by itself. Since its not part of the standard library, first we need to add a few crates:
+Serde is infinitely better than Go's runtime JSON marshalling. It is, quite frankly, a reason to use rust for web apis by itself. It's must faster, easier to use, harder to screw up, and easier to extend, and it supports more encodings than go.
+
+Since its not part of the standard library, first we need to add a few crates:
 
 ```bash
 cargo add serde
@@ -1234,13 +1240,13 @@ fn main() {
 }
 ```
 
-Lots to unload here. First, we dont have to define the logic for unmarshalling or marshalling our types, similar to go. Unlike go, this is all done at compile time. That means if something won't work, we'll know before we launch to production. 
+Lots to unload here. First, we dont have to define the logic for unmarshalling or marshalling our types, similar to go. Unlike go, this is all done at compile time. That means if something won't work, we'll know before we launch to production (or even compile it). 
 
 For instance, if we had a typo in one of our "annotations" in go, it'd compile just fine... and only fail at runtime. If we did the same thing here, for instance, if we had `#[serde(renam="test")]` we'd get an error at compile time saying `error: unknown serde variant attribute 'renam'
 
-Two, the `json!` macro allows you to embed json literals, not just strings, in your Rust code. Again, this is all done at _compile_ time, and so if we have invalid JSON, we'll get a compile error, and not something when we fail to parse it at runtime. It's also just way more convenient than dealing with multiline strings and no syntax highlighting. You can also pass in variables into the `json!`, as we pass in `&gender` here. So no need for string interpolation. 
+Two, the `json!` macro allows you to embed json literals, not just strings, in your Rust code. Again, this is all done at _compile_ time, and so if we have invalid JSON, we'll get a compile error, and not something when we fail to parse a plain string at runtime in go. It's also just way more convenient than dealing with multiline strings and no syntax highlighting. You can also pass in variables into the `json!`, as we pass in `&gender` here. So no need for string interpolation. 
 
-While not shown here, because Serde is so ubiquitous, every web server framework in go is going to be integrated with it, and that means that if a web request fails to unmarshal into the type you set as the content body, it'll _automatically_ return a meaningful 400 error for you. Nice.
+While not shown here, because Serde is so ubiquitous, every web server framework in rust is going to be integrated with it, and that means that if a web request fails to unmarshal into the type you set as the content body, it'll _automatically_ return a meaningful 400 error for you. Nice.
 
 Lastly, none of these types are public. None of the fields are public. In go, you have to have public fields to reflect over them, so you must export all your json types. Yuck.
 
@@ -1259,13 +1265,13 @@ Clone implements a way of copying a value. This is _expensive_ (or at least more
 
 While you learn rust, you'll find yourself cloning things left and right. You will likely wonder if that's normal. The answer is yes, but also no. It is normal -- your source in Go that didn't pass by reference was also copying. And some level of cloning ends up being inevitable. However, as you get more experience you'll discover ways to restructure your code to eliminate these clones.
 
-Don't lose sleep over clone, though. Use it when it solves your problem. There are bigger fish to fry, at first.
+Don't lose sleep over clone, though. Use it when it solves your problem. There are bigger fish to fry.
 
 #### Drop
 
 We've mentioned "dropping" scopes and dropping lifetimes many times throughout this module so far. This is intentional -- when a scope returns, or ends, all the values it owned are _dropped_. This is the mechanism Rust uses for "compile time" garbage collection -- codified in a trait so you can implement it for your types. 
 
-In a certain light, `drop` is similar to Go's `defer`, which executes a function when the function returns. Defer is also a function, and when a function returns, it is also called. However, drop is called on more than just function returns, and `defer` in go is very limiting.
+In a certain light, `drop` is similar to Go's `defer`, which executes a function when the function returns. Drop is also a function (the trait only has one method), and when a function returns, it is also called. However, drop is called on more than just function returns, and `defer` in go is very limiting.
 
 To study drop, lets implement a fake, very simplified sql transaction in code -- you start a transaction, pass it along through functions, and when its done, it either commits or rollsback. 
 
@@ -1330,7 +1336,7 @@ So, here we define our type, `Txn` and implement the `Drop` trait, which just ha
 
 Of note, Go has a unique advantage here, in its functional patterns, to be able to easily also _commit_ automatically... however we must remember to implement `defer` in each case. Rust can't easily replicate this behavior, but we gain other advantages (the ability to define `defer` like behavior in a *type* that can be passed around).
 
-In this sense, `Drop` is very similar to a deconstructor in OO languages. 
+In this sense, `Drop` is very similar to a deconstructor in OO languages. However, note that in most langauges with a deconstructor, you could not use a deconstructor to commit or rollback the transaction because the deconstructor is called when its garbage collected -- and that is not a definitive moment. Rust's drop is called _immediately_ when the object is about to be dropped from scope and removed from memory.
 
 So, how would we go about using our new type? Here's an example use case. 
 <?btxt+rust mode='append' ?>
@@ -1357,7 +1363,7 @@ Where do you think `committed` is printed?
 
 #### Default
 
-Since Rust doesn't set values to their zero values implicitly like Go, this means you must explicitly set values to a value _all the time_. Generally, this is not a problem, as you can just set them to sensible defaults explicitly in the constructor. But, if you are working with types that do not have a constructor, or if you want to reduce the burden of typing all the zero values out in your constructor code, Rust has the `Default` trait.
+Since Rust doesn't set values to their zero values implicitly like Go, this means you must explicitly set variables to a value _all the time_. Generally, this is not a problem, as you can just set them to sensible defaults explicitly in the constructor. But, if you are working with types that do not have a constructor, or if you want to reduce the burden of typing all the zero values out in your constructor code, Rust has the `Default` trait.
 
 Like many standard traits, `Default` can be derived for a type. 
 
@@ -1524,17 +1530,36 @@ There are two ways to define generic trait bounds, I prefer the `where` syntax s
 
 `Output` is a type on the trait. You can see the definition [here](https://doc.rust-lang.org/std/ops/trait.Add.html).
 
+Another useful element of generics is the ability to have more compile time checks than you can with go's runtime reflection. Consider the following common pattern in Go:
+
+```go
+func fatal(message string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, message, args...)
+	os.Exit(1)
+}
+```
+
+Here, we pass a format string to a print statement and then the things being formatting are just... anything. Literally anything. Go can't tell in this case what's going to happen if you pass something with a type that can't be printed, until runtime. If I pass an empty struct, what will happen? Who knows?
+
+We can solve this problem easily with rust (except rust doesn't support variadic parameters, which is why these things are macros in rust):
+
+```rust 
+fn fatal<T>(message: String, arg: T) where T: std::fmt::Display {
+	//
+}
+```
+
 ### Futures and async
 
 <?btxt+rust mode='overwrite' filename='tokio-example/src/main.rs' cmd='cargo run --manifest-path tokio-example/Cargo.toml' tag='async' pre='' post='' ?>
 <?btxt+javascript tag='async' ?>
-Let's talk about Javascript. Nowadays, writing async code in javascript consists of `asnyc/await` but it wasn't always that way. Before the syntactic sugar of those two keywords became standard, functions that wanted to support asynchronous behavior returned _promises_, which were then polled by the javascript runtime to complete.
+[Let's talk about Javascript](https://www.destroyallsoftware.com/talks/wat). Nowadays, writing async code in javascript consists of `asnyc/await` but it wasn't always that way. Before the syntactic sugar of those two keywords became standard, functions that wanted to support asynchronous behavior returned _promises_, which were then polled by the javascript runtime to complete.
 
 Rust has something similar to promises, called a `Future`. Note how above I mentioned that javascript promises are polled by the JS runtime. Rust has no runtime. So how can it poll it? That's actually exactly why they are called futures and not promises. A future _may_ come true, but only if you do something about it. A promise (in JS anyway) will complete, even if you immediately forget about it. 
 
 We aren't going to spend a lot of time implementing `Future` types -- just know that they're generic types, like `Result` built into the standard library. They are in fact a generic trait, since they require you to implement a method (poll). I consider implementing your own futures to be an intermediate topic, and is generally a waste of brain power at this stage. 
 
-The reason we don't need to really go over futures is that Rust also has `async/await` syntactic sugar, just like Javascript. The primary difference is, because Rust _doesn't_ have a runtime, you have to provide your own. Most of the time, you'll be using `tokio`. Usually, as in later modules of this training, you will indirectly use tokio via async code supported by a web framework or database library. There are other async runtimes available, but for our purposes, there is no need to investigate them -- tokio is the defacto, general purpose standard. 
+The reason we don't need to really go over futures is that Rust also has `async/await` syntactic sugar, just like Javascript. The primary difference is, because Rust _doesn't_ have a runtime, you have to provide your own. Most of the time, you'll be using `tokio`. Usually, as in later modules of this training, you will indirectly use tokio via async code supported by a web framework or database library. There are other async runtimes available, but for our purposes, there is no need to investigate them -- tokio is the de facto, general purpose standard. 
 
 #### Tokio and Async Await
 
@@ -1551,7 +1576,7 @@ async fn main() {
 }
 ```
 
-Any block or function can be marked as async, where `async` is actually a macro that expands the block into a block or function that returns a future. This means the return type of this block is not `&str` but is actually a `Future`. This means you _cannot_ pass around the result as a `&str` because `Future` is a different type. You must `await` it, and then deal with the Result (execution could fail). Then you are presented with the result of the actual execution -- in this case a `&str`.
+Any block or function can be marked as async, where `async` is actually a macro that expands the block into a block or function that returns a Future. This means the return type of this block is not `&str` but is actually a `Future`. This means you _cannot_ pass around the result as a `&str` because `Future` is a different type. You must `await` it, and then deal with the Result (execution could fail). Then you are presented with the result of the actual execution -- in this case a `&str`.
 
 #### Fearless Concurrency
 
@@ -1658,7 +1683,7 @@ Basically, the key part of this error is `Rc<...> cannot be shared between threa
 
 > Send and Sync are both _auto traits_ which means you can't implement them. The compiler automatically implements them when it can tell its appropriate.
 
-Great, but what do we do? Well, in Go we would use a mutex. A mutex will allow us to mutate our value, but it won't allow us to share a value across multiple owners. For that we still need a reference counter -- but Rc isn't threadsafe! So, we'll need an `Atomic Reference Counter`, or `Arc`. Arcs function the same as Rc except that each reference count operation is atomic, and thus you can't have a situation where a race condition occurs on the count.
+Great, but what do we do? Well, in Go we would use a mutex. A mutex will allow us to mutate our value, but it won't allow us to share a value across multiple owners. For that we still need a reference counter -- but Rc isn't threadsafe! So, we'll need an `Atomic Reference Counter`, or `Arc`. Arcs function the same as Rc except that each reference count operation is atomic, and thus you can't have a situation where a race condition occurs on the increment or decrement of the count operation.
 
 ```rust async1
 use std::collections::HashMap;
@@ -1727,6 +1752,7 @@ This section is just a small showcase of things that exist in rust that, AFAIK, 
 	- We'll work with both of these in the training.
 	- [Diesel](https://diesel.rs/) is an ORM that knows and checks (again, _at compile time_) that every type you try to insert into a database is perfectly compatible with that datatype. E.g. is the SQL column nullable? Gotta be an `Option`. 
 	- [SQLX](https://github.com/launchbadge/sqlx) can do the same thing, except it checks raw _queries_ at compile time to make sure they have valid types and structure. 
+- [Tower](https://www.reddit.com/r/rust/comments/13386q1/comment/ji8hzy0/?utm_source=share&utm_medium=web2x&context=3)'s network services don't care what protocol they run on. 
 - [RSX](https://github.com/victorporof/rsx) and [JSX](https://yew.rs/docs/next/concepts/html)
 	- Write JSX-like syntax in rust. Try doing that in go (seriously, try)
 ```

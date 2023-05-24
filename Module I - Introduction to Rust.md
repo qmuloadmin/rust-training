@@ -17,9 +17,9 @@ If you need convincing, here is Google's Chat AI Bard, telling it like it is:
 
 # Key Topics
 
-The purpose of this module is to present some critical topics in Rust that are novel (at least coming from Go) and essential for decoding Rust source. However, it is definitely _not_ expected that after this module everything in it makes perfect sense. You _should_ have a rudimentary understanding of what is being described but its fine if things are still vague. 
+The purpose of this module is to present some critical topics in Rust that are novel (at least coming from Go) and essential for decoding Rust source. However, it is definitely _not_ expected that after this module everything in it makes perfect sense. You _should_ have a rudimentary understanding of what is being described but it's fine if things are still vague. 
 
-You will almost certainly encounter these topics while progressing through the training, and this module can serve as a reference, in additional the the Rust documentation and community, to help you decode and understand what you're writing and reading.
+You will almost certainly encounter these topics while progressing through the training, and this module can serve as a reference, in addition to the Rust documentation and community, to help you decode and understand what you're writing and reading.
 
 ## Ownership
 

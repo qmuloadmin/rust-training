@@ -919,14 +919,14 @@ We also have something new - an `associated type`. This is another new thing to 
 
 ##### Working with Iterators
 <?btxt+rust mode='overwrite' pre='fn main() {
-let people = vec!["Sergio", "Sergio", "Daniel", "Khalil", "Rene", "Mora", "Justin", "Dino"];
+let people = vec!["Sergio", "Sergio", "Daniel", "Phil", "Rene", "Mora", "Justin", "Dino"];
 ' post='}' ?>
 So, once you have an iterator, what do you do with it? Well, the iterator trait provides dozens of methods for working with iterators. 
 
 All of the below examples will use this vector of `people`:
 <?btxt+rust ignore=true?>
 ```rust 
-let people = vec!["Sergio", "Sergio", "Daniel", "Khalil", "Rene", "Mora", "Justin", "Dino"];
+let people = vec!["Sergio", "Sergio", "Daniel", "Phil", "Rene", "Mora", "Justin", "Dino"];
 ```
 <?btxt+rust ignore=false?>
 Maybe obviously, you can iterate over them in a for loop:
@@ -1746,7 +1746,7 @@ This section is just a small showcase of things that exist in rust that, AFAIK, 
 	- Define infrastructure needs _in rust code_ as macros
 	- Deploy to the cloud using `cargo`
 	- Need a database? Reference it in code and it will get created on deploy 
-- [Bevy](https://bevyengine.org/) auto [concurrency](https://bevy-cheatbook.github.io/programming/ecs-intro.html#performance)
+- [Bevy](https://bevyengine.org/) auto [concurrency](https://bevy-cheatbook.github.io/programming/intro-code.html#parallel-systems)
 	- Because Rust's type system can express so much, Bevy (a game engine) will _automatically_ detect what game logic has no dependencies on other elements and run them in parellel. This is decided at _compile time_.
 - Sqlx and Diesel 
 	- We'll work with both of these in the training.

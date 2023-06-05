@@ -1618,7 +1618,7 @@ use std::collections::HashMap;
 #[tokio::main]
 async fn main() {
 	let mut map: HashMap<String, String> = HashMap::new();
-	let handle = tokio::spawn(async {
+	let handle = tokio::spawn(async move {
 		map.insert("test".into(), "value".into());
 	});
 	handle.await;

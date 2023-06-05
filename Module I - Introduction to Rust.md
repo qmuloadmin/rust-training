@@ -7,7 +7,7 @@
 func main() {||| post=|||}||| cmd='go run main.go' mode='overwrite' ?>
 <?btxt+javascript mode='overwrite' filename='index.js' cmd='node index.js' ?>
 
-Rust is definitely weird. It's also hard. But one thing to keep in mind is that almost all of its difficulty isn't because rust just decided to be hard -- these difficult topics are important to understand in other languages, those languages just let you compile your code without understanding them. So as you learn what rust is trying to teach you, you'll become a better developer even in other langauges.
+Rust is definitely weird. It's also hard. But one thing to keep in mind is that almost all of its difficulty isn't because rust just decided to be hard -- these difficult topics are important to understand in other languages, those languages just let you compile your code without understanding them. So as you learn what rust is trying to teach you, you'll become a better developer even in other languages.
 
 This module will introduce the things that are particularly weird, especially when compared to Go. Since everyone here is familiar with Go, we'll use that as our baseline frequently.
 
@@ -23,7 +23,7 @@ You will almost certainly encounter these topics while progressing through the t
 
 ## Ownership
 
-Rust doesn't have a garbage colletor. Like C and C++, rust forces the developer to manage their own memory. Unlike those languages, though, Rust won't let your code compile if you've mismanaged your memory.  This is all handled through Rust's concept of ownership.
+Rust doesn't have a garbage collector. Like C and C++, rust forces the developer to manage their own memory. Unlike those languages, though, Rust won't let your code compile if you've mismanaged your memory.  This is all handled through Rust's concept of ownership.
 
 The best part is, you've definitely seen ownership before -- scopes in all languages own the variables that are defined within them. If you drop the scope, you drop the variable. See the go example below.
 

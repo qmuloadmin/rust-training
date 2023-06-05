@@ -656,11 +656,32 @@ fn get_users(users: &UserRepo, filters: &Filters) -> Vec<User> {
 
 So, `if let` uses pattern matching to check `if` a condition is matched, and then `let` a variable equal a value. In this case, `if let` is saying, `if filters.name.is_some() { let name = filters.name.unwrap() }`.
 
+If we use the above in-line code example to expand out our `if let` expression, we would get something like this:
+
+```rust
+struct Filters{
+	group: uint,
+	name: Option<String>,
+	email: Option<String>
+}
+
+fn get_users(users: &UserRepo, filters: &Filters) -> Vec<User> {
+	let mut query = users.getUsersQuery();
+	query.filterByGroup(&filters.group);
+	if filters.name.is_some() {
+		query.filterByName(&filters.name.unwrap())
+	}
+	if filters.email.is_some() {
+		query.filterByEmail(&filters.email.unwrap())
+	}
+}
+```
+
 Which already presents some of the methods implemented on `Option`. 
 
-`is_some()` and `is_none()` are self evident -- they return true or false based on whether the variant is some or none. 
+`is_some()` (and its counterpart `is_none()`) is self evident -- they return true or false based on whether the variant is some or none. 
 
-`unwrap()` is a common method on `Options` and on `Results` (from the next section). This assumes the variant is `Some` and returns the value contained. If it is _not_ `Some` but is in fact `None` then the thread will panic and unwind. Avoid using this except in PoC code and immediately after checking `is_some()`. It is not a good idea to get in the habit of using `unwrap()`.
+`unwrap()` is a common method on `Options` and on `Results` (from the next section). This assumes the variant is `Some` and returns the value contained. If it is _not_ `Some` but is in fact `None` then the thread will panic and unwind. Avoid using this except in PoC code and immediately after checking `is_some()` (as shown above). It is not a good idea to get in the habit of using `unwrap()`. However, using `if let` instead of `is_some` and `unwrap` completely avoids the possibility of a panic due to a logical error, and also works with enums beyond `Option`.
 
 `expect()` is slightly more palatable than `unwrap()`. Expect takes a single string parameter and, if the variant is `None` then it panics with that string as the error body. This is still not a great habit to get into.
 
@@ -899,7 +920,7 @@ fn main() {
 ```
 > Unlike go, where interfaces are implemented implicitly, traits must be explicitly implemented in Rust. This allows you to implement multiple traits on the same type that have the same funtion name... something which is impossible in Go. It also makes code intelligence easier and searching code easier... basically its better in every way.
 
-Unlike Go, and like most languages with interfaces (python, java, C++, ruby), Rust's standard library has _many_ interfaces that are critical to writing sane, idiomatic rust. The next several setions will go over what I think are the most common and most usable traits.
+Unlike Go, and like most languages with interfaces (python, java, C++, ruby), Rust's standard library has _many_ interfaces that are critical to writing sane, idiomatic rust. The next several sections will review what I think are the most common and most usable traits.
 
 The last important thing to remember is that rust has _zero_ magic. Everything standard types are able to do is codified through a Trait, which means your types can do it, too. Everything. The `+` operator is just a trait, so it the `=` operator. `Rc` being able to serve as the type its wrapping is also just a trait (`AsRef` or `Deref`). 
 
@@ -915,7 +936,7 @@ Before we begin, let's take a look at the [Iterator](https://doc.rust-lang.org/s
 
 We also have something new - an `associated type`. This is another new thing to traits. In this case, since the Iterator could be iterating over absolutely anything, we have to define what the type of each item in the iterator is. 
 
-[Here](https://doc.rust-lang.org/std/iter/index.html#implementing-iterator) is an example of how to implement an iterator, from the official rust documentation. It also goes over `IntoIterator`. Into and From methods (and Traits) are very common in rust.
+[Here](https://doc.rust-lang.org/std/iter/index.html#implementing-iterator) is an example of how to implement an iterator, from the official rust documentation. It also goes over `IntoIterator`. `Into` and `From` methods (and Traits) are very common in rust.
 
 ##### Working with Iterators
 <?btxt+rust mode='overwrite' pre='fn main() {

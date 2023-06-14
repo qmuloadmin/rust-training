@@ -173,7 +173,7 @@ impl ApiClient {
 
 #[tokio::main]
 async fn main() -> Result<(), ClientError> {
-    let client = ApiClient::new("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImFjdGl2ZV9ncm91cCI6eyJoYXNfY2hpbGRyZW4iOmZhbHNlLCJpZCI6IjEiLCJuYW1lIjoiT3JkZXJNeUdlYXIiLCJwYXJlbnQiOm51bGx9LCJhc3N1bWVkX3VzZXIiOnsiZW1haWwiOlt7ImFkZHJlc3MiOiJ6YWNoQG9yZGVybXlnZWFyLmNvbSJ9XSwiZmlyc3RfbmFtZSI6IlphY2hhcnkiLCJoYXNNdWx0aXBsZUdyb3VwcyI6ZmFsc2UsImlkIjoiMTIwMDkiLCJpc0NvbnRyYWN0b3IiOmZhbHNlLCJpc09tZyI6dHJ1ZSwibGFzdF9uYW1lIjoiQnVsbG91Z2gifSwiYXV0aGVudGljYXRlZF91c2VyIjp7ImVtYWlsIjpbeyJhZGRyZXNzIjoiemFjaEBvcmRlcm15Z2Vhci5jb20ifV0sImZpcnN0X25hbWUiOiJaYWNoYXJ5IiwiaGFzTXVsdGlwbGVHcm91cHMiOmZhbHNlLCJpZCI6IjEyMDA5IiwiaXNDb250cmFjdG9yIjpmYWxzZSwiaXNPbWciOnRydWUsImxhc3RfbmFtZSI6IkJ1bGxvdWdoIn0sInRva2VuIjoibmNNMXQxRE51b24tYUtCY05UOXpXbnlnckYxZUprWEhFWnhrNFVMMSJ9LCJleHAiOjE2ODY4MDgxMTV9.Zj4Q90QhEMBeAZd9VRlGUKffoIjiZFh2J30GsDa8FQfpTJDv_2iC-96WYy-BtkFdwQJxXY3sI_NZ6Qu5olozBxattghZJYVGFwji_HsjBC8ZtPyu96SfaPtxaefkuvBTdl2uSOI-c0uKPLRrkxHCCS1RtF4216idtDG77I1tkDEHtoFcrwaLmeiDqYVBMmLYq0tE_50DG-JIO1s2rzIP0TpIp6A7KipsqQdq-pmOqZWaNebmA4XoFk0L2gG-nrL5FEHByNiSR-8HqYjXtXklWrF6dVAVMntzlVpDY_rWdpeWhYiLqmZZ9CRhMxeoUN9DRZz9y7nmi7MmuAm0lGeduw".into());
+    let client = ApiClient::new("".into());
     let resources: Vec<SaleResponse> = client.find_all_resources().await?;
     for res in resources.into_iter() {
         println!("{:?}", res);
